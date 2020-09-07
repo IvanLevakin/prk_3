@@ -2,8 +2,9 @@
 #include <string>
 using namespace std;
 int main() {
+	setlocale(LC_ALL, "Russian");
 	int a, b, c, d, e;
-	double k;
+	double k,sum;
 	string g = "центовая монета";
 	string h = "центовые монеты";
 	string t = "центовых монет";
@@ -63,3 +64,6 @@ int main() {
 	if (e % 10 > 2) {
 		cout << "У вас " << e << " 50-" << t << " \n";
 	}
+	sum = (a + b + c + d + e);
+		cout << sum/100 << " $";
+}
