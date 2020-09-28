@@ -1,13 +1,14 @@
 ﻿#include "std_lib_facilities.h"
 
 //------------------------------------------------------------------------------
+
 class Token {
 public:
 	char kind;        // what kind of token
-	bool value;     // for numbers: a value 
+	double value;     // for numbers: a value 
 	Token(char ch)    // make a Token from a char
 		:kind(ch), value(0) { }
-	Token(char ch, bool val)     // make a Token from a char and a double
+	Token(char ch, double val)     // make a Token from a char and a double
 		:kind(ch), value(val) { }
 };
 
@@ -57,22 +58,16 @@ Token Token_stream::get()
 	switch (ch) {
 	case ';':    // for "print"
 	case 'q':    // for "quit"
-	case '(': case ')': case '|': case '^': case '&': case '!':
+	case '(': case ')': case '+': case '-': case '*': case '/':case'{':case'}':case '!':
 		return Token(ch);        // let each character represent itself
-	case '0': case '1':
+	case '.':
+	case '0': case '1': case '2': case '3': case '4':
+	case '5': case '6': case '7':case'8': case '9':
 	{
-		bool val = (ch == '1');        // read a floating-point number
+		cin.putback(ch);         // put digit back into the input stream
+		double val;
+		cin >> val;              // read a floating-point number
 		return Token('8', val);   // let '8' represent "a number"
-	}
-	case 't': case 'T':
-	{
-		for (int i = 0; i < 3; i++)cin >> ch;
-		return Token('8', true);
-	}
-	case 'f': case 'F':
-	{
-		for (int i = 0; i < 4; i++)cin >> ch;
-		return Token('8', false);
 	}
 	default:
 		error("Bad token");
@@ -85,25 +80,15 @@ Token_stream ts;        // provides get() and putback()
 
 //------------------------------------------------------------------------------
 
-bool expression();    // declaration so that primary() can call expression()
+double expression();    // declaration so that primary() can call expression()
 
 //------------------------------------------------------------------------------
 
 // deal with numbers and parentheses
-bool primary()
+double primary()
 {
 	Token t = ts.get();
 	switch (t.kind) {
-	case 'q':
-		ts.putback(t);
-		break;
-
-	case '!':
-		bool right;
-		right = !primary();
-		return right;
-
-
 	case '(':    // handle '(' expression ')'
 	{
 		double d = expression();
@@ -111,7 +96,14 @@ bool primary()
 		if (t.kind != ')') error("')' expected");
 		return d;
 	}
-	case '8':            // we use '8' to represent a number
+	case'{': {
+		double d = expression();
+		t = ts.get();
+		if (t.kind != '}') error("'}' expected");
+		return d;
+	}
+	case '8':
+		// we use '8' to represent a number
 		return t.value;  // return the number's value
 	default:
 		error("primary expected");
@@ -119,27 +111,44 @@ bool primary()
 }
 
 //------------------------------------------------------------------------------
-
+double fuck() {
+	double left = primary();
+	Token t = ts.get();
+	while (true) {
+		switch (t.kind) {
+		case '!': {
+			int n = 1;
+			for (int i = 1; i <= left; i++) {
+				n *= i;
+			}
+			left = n;
+			t = ts.get();
+			break;
+		}
+		default:
+			ts.putback(t);     // put t back into the token stream
+			return left;
+		}
+	}
+}
 // deal with *, /, and %
-bool term()
+double term()
 {
-	bool left = primary();
+	double left = fuck();
 	Token t = ts.get();        // get the next token from token stream
-	bool right;
 
 	while (true) {
 		switch (t.kind) {
-		case '&':
+		case '*':
+
 			left *= primary();
 			t = ts.get();
 			break;
-		case '^':
+		case '/':
 		{
-			right = primary();
-			if (left == right)
-				left = 0;
-			else
-				left = 1;
+			double d = primary();
+			if (d == 0) error("divide by zero");
+			left /= d;
 			t = ts.get();
 			break;
 		}
@@ -153,20 +162,19 @@ bool term()
 //------------------------------------------------------------------------------
 
 // deal with + and -
-bool expression()
+double expression()
 {
-	bool left = term();      // read and evaluate a Term
-	Token t = ts.get();		// get the next token from token stream
-	bool right;
+	double left = term();      // read and evaluate a Term
+	Token t = ts.get();        // get the next token from token stream
 
 	while (true) {
 		switch (t.kind) {
-		case '|':
-			right = term();
-			if (left + right != 0)
-				left = 1;
-			else
-				left = 0;
+		case '+':
+			left += term();    // evaluate Term and add
+			t = ts.get();
+			break;
+		case '-':
+			left -= term();    // evaluate Term and subtract
 			t = ts.get();
 			break;
 		default:
@@ -179,10 +187,9 @@ bool expression()
 //------------------------------------------------------------------------------
 
 int main()
-
 try
 {
-	bool val = 0;
+	double val;
 	while (cin) {
 		Token t = ts.get();
 
@@ -205,3 +212,5 @@ catch (...) {
 	keep_window_open();
 	return 2;
 }
+
+//------------------------------------------------------------------------------
